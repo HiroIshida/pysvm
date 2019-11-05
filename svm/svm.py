@@ -28,14 +28,14 @@ class SVM:
 
         fig, ax = plt.subplots() 
         def fun(x):
-            f = svm.predict(np.array([x]))
+            f = self.decision_function(np.array([x]))
             return f[0]
 
         bmin, bmax = svm.get_boudnary()
         utils.show2d(fun, bmin, bmax, levels = [0.0], fax = (fig, ax), N = 100)
 
-        idx_positive = np.where(svm.Y > 0)[0]
-        idx_negative = np.where(svm.Y < 0)[0]
+        idx_positive = np.where(self.Y > 0)[0]
+        idx_negative = np.where(self.Y < 0)[0]
         ax.scatter(self.X[idx_positive, 0], self.X[idx_positive, 1], c = "r")
         ax.scatter(self.X[idx_negative, 0], self.X[idx_negative, 1], c = "b")
 
@@ -70,9 +70,13 @@ class SVM:
             tmp_list.append(self.Y[i]-tmp)
         self.b = np.mean(tmp_list)
 
-    def predict(self, X):
+    def decision_function(self, X):
         y = np.dot(np.array([self.w]), self.kern(X, Y=self.support_vector).T) + self.b
         y = y.reshape(len(X))
+        return y
+
+    def predict(self, X):
+        y = self.decision_function(X)
         return np.array([1 if pred > 0 else -1 for pred in y])
 
     def get_boudnary(self, margin = 0.2):
