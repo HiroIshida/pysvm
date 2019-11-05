@@ -83,17 +83,22 @@ class SVM:
         bmax = bmax_ + margin * dif
         return bmin, bmax
 
-def gen_dataset(N = 10):
+def gen_dataset_linear(N = 10):
     X = rn.randn(N, 2) * 10
     logical = np.array([(X[i, 1] - X[i, 0] * 2 < 0) for i in range(N)])
     Y = (-1 + logical * 2)
     return X, Y
 
+def gen_dataset_circle(N = 30):
+    X = rn.randn(N, 2) * 1
+    logical = np.array([(X[i, 1] ** 2 + X[i, 0] ** 2 < 1.0) for i in range(N)])
+    Y = (-1 + logical * 2)
+    return X, Y
+
 if __name__=='__main__':
     np.random.seed(0)
-    X, Y = gen_dataset(4)
-    kern = linear_kernel
-
+    X, Y = gen_dataset_circle(N = 100)
+    kern = rbf_kernel
     svm = SVM(X, Y, kern)
     svm.solve_qp()
     svm.show()
