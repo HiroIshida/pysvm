@@ -5,22 +5,11 @@ import numpy.random as rn
 import matplotlib.pyplot as plt
 import cvxopt
 import time
-
 import utils
-class rbf_kernel:
 
-    def __init__(self, gamma):
-        self.gamma = 1.0
-    def k(self, x1, x2):
-        return math.exp(-self.gamma * la.norm(x1 - x2) ** 2)
+from sklearn.metrics.pairwise import *
 
-class linear_kernel:
-
-    def __init__(self):
-        pass
-
-    def k(self, x1, x2):
-        return np.dot(x1, x2)
+eps = 1e-7
 
 class SVM:
     def __init__(self, X, Y, kern, C = 100000.0):
@@ -31,12 +20,9 @@ class SVM:
         self.kern = kern
         self.C = C
 
-        # dual valiable
-        self.a = None
-
-        # parameters of hyperplane
-        self.A = None
+        self.w = None
         self.b = None
+        self.support_vector = None
 
     def show(self):
 
@@ -54,14 +40,9 @@ class SVM:
         ax.scatter(self.X[idx_negative, 0], self.X[idx_negative, 1], c = "b")
 
     def solve_qp(self):
-        P = np.zeros((self.n_train, self.n_train))
-        for i in range(self.n_train):
-            for j in range(self.n_train):
-                x1 = self.X[i, :]
-                x2 = self.X[j, :]
-                y1 = self.Y[i]
-                y2 = self.Y[j]
-                P[i, j] = y1 * y2 * kern.k(x1, x2)
+        gram_matrix = self.kern(X)
+        T = np.array([[self.Y[i] * self.Y[j] for j in range(self.n_train)] for i in range(self.n_train)])
+        P = gram_matrix * T
 
         P = cvxopt.matrix(P)
         q = cvxopt.matrix(- np.ones(self.n_train))
@@ -76,27 +57,23 @@ class SVM:
         h1 = np.zeros(self.n_train)
         h = cvxopt.matrix(np.block([h0, h1]))
         sol = cvxopt.solvers.qp(P, q, G=G, h=h, A=A, b=b)
-        self.a = np.array(sol["x"])
-        self._compute_hyperplane()
 
-        print np.array(G).dot(np.array(sol["x"])) < h
-    
+        indexes_active = list(filter(lambda x: sol["x"][x] > eps, range(self.n_train)))
+        self.w = np.array(sol["x"])[indexes_active].reshape(len(indexes_active)) * self.Y[indexes_active]
+        self.support_vector = X[indexes_active]
 
-    def _compute_hyperplane(self): 
-        ay = self.a * np.array([self.Y]).T
-        ayx = np.tile(ay, (1, self.n_dim)) * self.X
-        A = ayx.mean(axis = 0)
-
-        b_list = np.array([self.Y[i] - A.dot(self.X[i, :]) for i in range(self.n_train)])
-        print b_list
-        b = b_list.mean()
-
-        self.A = A
-        self.b = b
+        tmp_list = []
+        for i in indexes_active:
+            tmp = 0
+            for j in indexes_active:
+                tmp += (sol["x"][j] * self.Y[j] * gram_matrix[i][j])
+            tmp_list.append(self.Y[i]-tmp)
+        self.b = np.mean(tmp_list)
 
     def predict(self, X):
-        val = np.dot(self.A, X.T) + self.b
-        return (val > 0)
+        y = np.dot(np.array([self.w]), self.kern(X, Y=self.support_vector).T) + self.b
+        y = y.reshape(len(X))
+        return np.array([1 if pred > 0 else -1 for pred in y])
 
     def get_boudnary(self, margin = 0.2):
         bmin_ = self.X.min(axis = 0) 
@@ -113,23 +90,11 @@ def gen_dataset(N = 10):
     return X, Y
 
 if __name__=='__main__':
-    #rn.seed(2)
-    #kern = rbf_kernel(1.0)
-    kern = linear_kernel()
-
     np.random.seed(0)
     X, Y = gen_dataset(4)
-    #X = rn.randn(N, 3)3
-    #Y = (-1 + (rn.randn(N) > 0)*2)
+    kern = linear_kernel
+
     svm = SVM(X, Y, kern)
     svm.solve_qp()
     svm.show()
     plt.show()
-
-    """
-    pre = svm.predict(X)
-    logical = (-1 + pre * 2) 
-    print logical - Y
-    print svm.a
-    """
-
