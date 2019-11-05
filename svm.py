@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import cvxopt
 import time
 
+import utils
+
 class rbf_kernel:
 
     def __init__(self, gamma):
@@ -14,7 +16,7 @@ class rbf_kernel:
         return math.exp(-self.gamma * la.norm(x1 - x2) ** 2)
 
 class SVM:
-    def __init__(self, X, Y, kern, C = 100):
+    def __init__(self, X, Y, kern, C = 10000000000000):
         self.X = X
         self.Y = Y
         self.n_train = X.shape[0]
@@ -30,9 +32,17 @@ class SVM:
         self.b = None
 
     def show(self):
+
+        fig, ax = plt.subplots() 
+        def fun(x):
+            f = svm.predict(np.array([x]))
+            return f[0]
+
+        bmin, bmax = svm.get_boudnary()
+        utils.show2d(fun, bmin, bmax, levels = [0.0], fax = (fig, ax), N = 100)
+
         idx_positive = np.where(svm.Y > 0)[0]
         idx_negative = np.where(svm.Y < 0)[0]
-        fig, ax = plt.subplots() 
         ax.scatter(self.X[idx_positive, 0], self.X[idx_positive, 1], c = "r")
         ax.scatter(self.X[idx_negative, 0], self.X[idx_negative, 1], c = "b")
 
@@ -48,8 +58,10 @@ class SVM:
 
         P = cvxopt.matrix(P)
         q = cvxopt.matrix(- np.ones(self.n_train))
-        A = cvxopt.matrix(self.Y.astype(np.double), (1, self.n_train))
+        A = cvxopt.matrix(self.Y.astype(np.double), (1, self.n_train)) * 10000000000
         b = cvxopt.matrix(0.0)
+        """
+
 
         G0 = - np.eye(self.n_train)
         G1 = np.eye(self.n_train)
@@ -57,7 +69,8 @@ class SVM:
         h0 = np.zeros(self.n_train)
         h1 = np.ones(self.n_train) * self.C
         h = cvxopt.matrix(np.block([h0, h1]))
-        sol = cvxopt.solvers.qp(P, q, G, h, A, b)
+        """
+        sol = cvxopt.solvers.qp(P, q, None, None, A, b)
         self.a = np.array(sol["x"])
         self._compute_hyperplane()
 
@@ -94,13 +107,18 @@ def gen_dataset(N = 10):
 if __name__=='__main__':
     #rn.seed(2)
     kern = rbf_kernel(1.0)
-    X, Y = gen_dataset(10)
+    X, Y = gen_dataset(100)
     #X = rn.randn(N, 3)3
     #Y = (-1 + (rn.randn(N) > 0)*2)
     svm = SVM(X, Y, kern)
     svm.solve_qp()
+    svm.show()
+    plt.show()
+
+    """
     pre = svm.predict(X)
     logical = (-1 + pre * 2) 
     print logical - Y
     print svm.a
+    """
 
