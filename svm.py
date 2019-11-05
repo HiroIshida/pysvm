@@ -7,7 +7,6 @@ import cvxopt
 import time
 
 import utils
-
 class rbf_kernel:
 
     def __init__(self, gamma):
@@ -15,8 +14,16 @@ class rbf_kernel:
     def k(self, x1, x2):
         return math.exp(-self.gamma * la.norm(x1 - x2) ** 2)
 
+class linear_kernel:
+
+    def __init__(self):
+        pass
+
+    def k(self, x1, x2):
+        return np.dot(x1, x2)
+
 class SVM:
-    def __init__(self, X, Y, kern, C = 10000000000000):
+    def __init__(self, X, Y, kern, C = 100000.0):
         self.X = X
         self.Y = Y
         self.n_train = X.shape[0]
@@ -58,29 +65,30 @@ class SVM:
 
         P = cvxopt.matrix(P)
         q = cvxopt.matrix(- np.ones(self.n_train))
-        A = cvxopt.matrix(self.Y.astype(np.double), (1, self.n_train)) * 10000000000
+        A = cvxopt.matrix(self.Y.astype(np.double), (1, self.n_train))
         b = cvxopt.matrix(0.0)
-        """
 
-
-        G0 = - np.eye(self.n_train)
-        G1 = np.eye(self.n_train)
+        G0 = np.eye(self.n_train)
+        G1 = - np.eye(self.n_train)
         G = cvxopt.matrix(np.vstack((G0, G1)))
-        h0 = np.zeros(self.n_train)
-        h1 = np.ones(self.n_train) * self.C
+
+        h0 = np.ones(self.n_train) * self.C
+        h1 = np.zeros(self.n_train)
         h = cvxopt.matrix(np.block([h0, h1]))
-        """
-        sol = cvxopt.solvers.qp(P, q, None, None, A, b)
+        sol = cvxopt.solvers.qp(P, q, G=G, h=h, A=A, b=b)
         self.a = np.array(sol["x"])
         self._compute_hyperplane()
+
+        print np.array(G).dot(np.array(sol["x"])) < h
+    
 
     def _compute_hyperplane(self): 
         ay = self.a * np.array([self.Y]).T
         ayx = np.tile(ay, (1, self.n_dim)) * self.X
         A = ayx.mean(axis = 0)
-        i = 2
 
         b_list = np.array([self.Y[i] - A.dot(self.X[i, :]) for i in range(self.n_train)])
+        print b_list
         b = b_list.mean()
 
         self.A = A
@@ -106,8 +114,11 @@ def gen_dataset(N = 10):
 
 if __name__=='__main__':
     #rn.seed(2)
-    kern = rbf_kernel(1.0)
-    X, Y = gen_dataset(100)
+    #kern = rbf_kernel(1.0)
+    kern = linear_kernel()
+
+    np.random.seed(0)
+    X, Y = gen_dataset(4)
     #X = rn.randn(N, 3)3
     #Y = (-1 + (rn.randn(N) > 0)*2)
     svm = SVM(X, Y, kern)
