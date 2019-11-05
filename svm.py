@@ -77,6 +77,13 @@ class SVM:
         val = np.dot(self.A, X.T) + self.b
         return (val > 0)
 
+    def get_boudnary(self, margin = 0.2):
+        bmin_ = self.X.min(axis = 0) 
+        bmax_ = self.X.max(axis = 0) 
+        dif = bmax_ - bmin_
+        bmin = bmin_ - margin * dif
+        bmax = bmax_ + margin * dif
+        return bmin, bmax
 
 def gen_dataset(N = 10):
     X = rn.randn(N, 2) * 10
