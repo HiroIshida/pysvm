@@ -10,33 +10,27 @@ class rbf_kernel:
     def k(self, x1, x2):
         return math.exp(-self.gamma * la.norm(x1 - x2) ** 2)
 
-def construct_kmat(X, kern):
-    n_train = X.shape[0]
-    n_dim = X.shape[1]
-    mat = np.zeros((n_train, n_train))
-    for i in range(n_train):
-        for j in range(n_train):
-            x1 = X[i, :]
-            x2 = X[j, :]
-            mat[i, j] = kern.k(x1, x2)
-    return mat
+class SVM:
+    def __init__(self, X, Y, kern):
+        self.X = X
+        self.Y = Y
+        self.n_train = X.shape[0]
+        self.n_dim = X.shape[1]
+        self.kern = kern
 
-def construct_ymat(Y):
-    n_train = X.shape[0]
-    n_dim = X.shape[1]
-    mat = np.zeros((n_train, n_train))
-    for i in range(n_train):
-        for j in range(n_train):
-            y1 = Y[i]
-            y2 = Y[j]
-            mat[i, j] = y1 * y2
-    return mat
+    def construct_qp_problem(self):
+        P = np.zeros((self.n_train, self.n_train))
+        for i in range(self.n_train):
+            for j in range(self.n_train):
+                x1 = self.X[i, :]
+                x2 = self.X[j, :]
+                y1 = self.Y[i]
+                y2 = self.Y[j]
+                P[i, j] = y1 * y2 * kern.k(x1, x2)
 
-def construct_qp_problem(X, Y, kern):
-    Kmat = construct_kmat(X, kern)
-    Ymat = construct_ymat(Y)
-    P = Kmat * Ymat
-    return P
+        q = np.ones(self.n_train)
+        A = np.matrix(self.Y)
+        b = 0.0
 
     
 
@@ -45,5 +39,7 @@ if __name__=='__main__':
     N= 10
     X = rn.randn(N, 3)
     Y = (-1 + (rn.randn(N) > 0)*2)
-    P = construct_qp_problem(X, Y, kern)
+    svm = SVM(X, Y, kern)
+    P = svm.construct_qp_problem()
+    #AP = construct_qp_problem(X, Y, kern)
 
