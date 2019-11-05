@@ -40,7 +40,7 @@ class SVM:
         ax.scatter(self.X[idx_negative, 0], self.X[idx_negative, 1], c = "b")
 
     def solve_qp(self):
-        gram_matrix = self.kern(X)
+        gram_matrix = self.kern(self.X)
         T = np.array([[self.Y[i] * self.Y[j] for j in range(self.n_train)] for i in range(self.n_train)])
         P = gram_matrix * T
 
@@ -60,7 +60,7 @@ class SVM:
 
         indexes_active = list(filter(lambda x: sol["x"][x] > eps, range(self.n_train)))
         self.w = np.array(sol["x"])[indexes_active].reshape(len(indexes_active)) * self.Y[indexes_active]
-        self.support_vector = X[indexes_active]
+        self.support_vector = self.X[indexes_active]
 
         tmp_list = []
         for i in indexes_active:
