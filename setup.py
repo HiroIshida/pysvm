@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 setup(
-    name='svm',
+    name='pysvm',
     version='0.0.1',
     description='Sample package for Python-Guide.org',
     license=license,
